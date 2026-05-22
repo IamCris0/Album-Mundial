@@ -7,14 +7,14 @@ export const albumMetadata = {
   specialStickerCount: 68,
   sources: [
     {
-      label: 'Panini Alemania - album oficial',
-      url: 'https://www.panini.de/shp_deu_de/offizielle-fifa-world-cup-2026-stickerkollektion-album-005460ad-de01.html',
-      note: 'Producto oficial: 112 paginas y espacio para 980 cromos.',
+      label: 'Panini official checklist 2026',
+      url: 'https://www.panini.es/media/paniniFiles/005461_FIFA_WC_2026_Checklist_all_1-1-2.pdf',
+      note: 'Checklist publica indicada como referencia oficial del proyecto.',
     },
     {
-      label: 'Panini Espana - Treasure Box',
-      url: 'https://www.panini.es/shp_esp_es/fifa-world-cup-2026-official-sticker-collection-treasure-box-colecci-n-oficial-panini-005460cofecw-es01.html',
-      note: 'Producto oficial: 980 cromos, 112 paginas y 68 cromos especiales.',
+      label: 'Scanini - checklist publica de stickers',
+      url: 'https://scanini.app/albums/world-cup-2026',
+      note: 'Referencia estructurada para 980 stickers: PANINI, FWC y 48 selecciones.',
     },
     {
       label: 'FIFA - Panini Collection App',

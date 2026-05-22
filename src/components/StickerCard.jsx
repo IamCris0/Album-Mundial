@@ -1,6 +1,8 @@
 import { Check, ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 export default function StickerCard({ sticker, onToggle, disabled }) {
+  const hasSourceUrl = /^https?:\/\//i.test(sticker.source || '');
+
   return (
     <article className={sticker.owned ? 'sticker-card owned' : 'sticker-card'}>
       <div className="sticker-card-top">
@@ -36,11 +38,13 @@ export default function StickerCard({ sticker, onToggle, disabled }) {
       </dl>
 
       <div className="sticker-actions">
-        {sticker.source ? (
+        {hasSourceUrl ? (
           <a className="source-link" href={sticker.source} target="_blank" rel="noreferrer">
             Fuente
             <ExternalLink size={14} />
           </a>
+        ) : sticker.source ? (
+          <span className="source-link">{sticker.source}</span>
         ) : (
           <span className="source-link disabled">Sin fuente</span>
         )}

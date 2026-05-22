@@ -28,12 +28,28 @@ create table if not exists public.stickers (
 create table if not exists public.user_stickers (
   id uuid primary key default gen_random_uuid(),
   sticker_id uuid not null references public.stickers(id) on delete cascade,
-  profile_key text not null default 'ammycita-single-user',
+  profile_key text not null default 'ammycita',
   owned boolean default false,
   obtained_at timestamp with time zone,
   updated_at timestamp with time zone default now(),
   unique (profile_key, sticker_id)
 );
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'stickers_code_key'
+  ) then
+    alter table public.stickers add constraint stickers_code_key unique (code);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'user_stickers_profile_key_sticker_id_key'
+  ) then
+    alter table public.user_stickers
+      add constraint user_stickers_profile_key_sticker_id_key unique (profile_key, sticker_id);
+  end if;
+end $$;
 
 create index if not exists stickers_album_page_idx on public.stickers(album_page);
 create index if not exists stickers_country_idx on public.stickers(country);
@@ -44,26 +60,31 @@ alter table public.album_pages enable row level security;
 alter table public.stickers enable row level security;
 alter table public.user_stickers enable row level security;
 
+drop policy if exists "Album pages are readable" on public.album_pages;
 create policy "Album pages are readable"
   on public.album_pages for select
   using (true);
 
+drop policy if exists "Stickers are readable" on public.stickers;
 create policy "Stickers are readable"
   on public.stickers for select
   using (true);
 
+drop policy if exists "Single album progress is readable" on public.user_stickers;
 create policy "Single album progress is readable"
   on public.user_stickers for select
-  using (profile_key = 'ammycita-single-user');
+  using (profile_key = 'ammycita');
 
+drop policy if exists "Single album progress can be inserted" on public.user_stickers;
 create policy "Single album progress can be inserted"
   on public.user_stickers for insert
-  with check (profile_key = 'ammycita-single-user');
+  with check (profile_key = 'ammycita');
 
+drop policy if exists "Single album progress can be updated" on public.user_stickers;
 create policy "Single album progress can be updated"
   on public.user_stickers for update
-  using (profile_key = 'ammycita-single-user')
-  with check (profile_key = 'ammycita-single-user');
+  using (profile_key = 'ammycita')
+  with check (profile_key = 'ammycita');
 
 -- Para multiples usuarios en el futuro:
 -- 1. Agrega auth_user_id uuid references auth.users(id) a user_stickers.

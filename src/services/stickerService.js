@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { fallbackAlbumPages, fallbackStickers } from '../data/albumMetadata';
 
-const singleUserKey = 'ammycita-single-user';
+const singleUserKey = 'ammycita';
 
 function normalizeSticker(sticker, ownedRows = []) {
   const ownedMatch = ownedRows.find((row) => row.sticker_id === sticker.id);
@@ -33,11 +33,10 @@ export async function getStickers() {
     return fallbackStickers.map((sticker) => ({ ...sticker, owned: ownedIds.includes(sticker.id) }));
   }
 
-  const [{ data: stickers, error: stickerError }, { data: ownedRows, error: ownedError }] =
-    await Promise.all([
-      supabase.from('stickers').select('*').order('code', { ascending: true }),
-      supabase.from('user_stickers').select('*').eq('profile_key', singleUserKey),
-    ]);
+  const [{ data: stickers, error: stickerError }, { data: ownedRows, error: ownedError }] = await Promise.all([
+    supabase.from('stickers').select('*').order('album_page', { ascending: true }).order('code', { ascending: true }),
+    supabase.from('user_stickers').select('*').eq('profile_key', singleUserKey),
+  ]);
 
   if (stickerError) throw stickerError;
   if (ownedError) throw ownedError;

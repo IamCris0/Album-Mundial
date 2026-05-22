@@ -1,21 +1,22 @@
 # Album Mundial Ammycita ❤️
 
-Aplicacion responsive hecha con React, Vite y Supabase para controlar los cromos del album Panini FIFA World Cup 2026. El proyecto esta pensado como un regalo para Ammy: bonito, futbolero, romantico y listo para desplegar en Vercel.
+Aplicacion responsive hecha con React, Vite y Supabase para controlar el progreso del album Panini FIFA World Cup 2026. Incluye bienvenida especial para Ammy, dashboard, filtros, paginas del album y marcado persistente de cromos.
 
-## Estado de los datos
+## Estado de la checklist
 
-La app prioriza exactitud sobre cantidad. No incluye una checklist inventada. La semilla crea 112 paginas pendientes y un cromo pendiente de verificacion para validar el flujo.
+La app esta preparada para 980 cromos, 48 selecciones, 112 paginas y 68 cromos especiales. El seed actual carga 980 registros estructurados:
 
-Fuentes publicas revisadas para los metadatos generales:
+- 1 cromo Panini.
+- 19 cromos FWC / World Cup History.
+- 48 selecciones con 20 cromos cada una.
 
-- Panini Alemania: album oficial con 112 paginas y espacio para 980 cromos.
-  https://www.panini.de/shp_deu_de/offizielle-fifa-world-cup-2026-stickerkollektion-album-005460ad-de01.html
-- Panini Espana: producto oficial que reporta 980 cromos, 112 paginas y 68 cromos especiales.
-  https://www.panini.es/shp_esp_es/fifa-world-cup-2026-official-sticker-collection-treasure-box-colecci-n-oficial-panini-005460cofecw-es01.html
-- FIFA: referencia publica de la coleccion digital Panini para FIFA World Cup 2026.
-  https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/fifa-panini-collection-app
+Nota de verificacion: el PDF indicado como referencia oficial publica de Panini (`005461_FIFA_WC_2026_Checklist_all_1-1-2.pdf`) muestra una checklist de 630 items tipo Adrenalyn XL/cartas. Para no mezclar cartas con stickers, el seed de 980 se genero con una checklist publica de stickers y se deja documentada la fuente para futuras actualizaciones.
 
-No agregues jugadores, selecciones, codigos o secciones sin una fuente verificable.
+Fuentes:
+
+- Panini checklist PDF: https://www.panini.es/media/paniniFiles/005461_FIFA_WC_2026_Checklist_all_1-1-2.pdf
+- Checklist publica 980 stickers: https://scanini.app/albums/world-cup-2026
+- FIFA Panini Collection App: https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/fifa-panini-collection-app
 
 ## Tecnologias
 
@@ -23,76 +24,88 @@ No agregues jugadores, selecciones, codigos o secciones sin una fuente verificab
 - Supabase
 - CSS responsive mobile-first
 - Vercel
-- GitHub
 
-## Instalacion local
+## Ejecutar localmente
 
 ```bash
 npm install
 npm run dev
 ```
 
-Luego abre la URL que muestre Vite.
+Para validar produccion:
 
-## Configurar Supabase
+```bash
+npm run build
+npm run preview
+```
 
-1. Crea un proyecto en Supabase.
-2. Abre el SQL Editor.
-3. Ejecuta `supabase/schema.sql`.
-4. Ejecuta `supabase/seed.sql`.
-5. Copia la URL del proyecto y la anon public key.
-6. Crea `.env.local` usando `.env.example`:
+## Variables de entorno
+
+Crea `.env.local` a partir de `.env.example`:
 
 ```bash
 VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
 VITE_SUPABASE_ANON_KEY=tu_anon_key_publica
 ```
 
-La app usa esas variables desde `src/lib/supabaseClient.js`.
+No subas `.env.local` al repositorio.
 
-## Ejecutar sin Supabase
+## Configurar Supabase
 
-Si no existen variables de entorno, la app entra en modo demo local. En ese modo usa datos pendientes desde `src/data/albumMetadata.js` y guarda marcados en `localStorage`.
+1. Crea un proyecto en Supabase.
+2. Abre el SQL Editor.
+3. Ejecuta `supabase/schema.sql`.
+4. Ejecuta `supabase/seed.sql` o `supabase/stickers_seed.sql`.
+5. Verifica que `stickers` tenga 980 filas y que `PENDING001` no exista.
 
-## Agregar cromos reales
-
-Agrega filas en la tabla `stickers` solo cuando tengas una fuente publica o autorizada:
+Consultas utiles:
 
 ```sql
-insert into public.stickers
-  (code, number, album_page, section, country, name, type, rarity, verified, source)
-values
-  ('CODIGO_REAL', 'CODIGO_REAL', 10, 'Seccion verificada', 'Pais verificado', 'Nombre verificado', 'Jugador', 'Base', true, 'https://fuente-verificable');
+select count(*) from public.stickers;
+select code, name from public.stickers where code in ('FWC001', 'MEX007');
 ```
 
-Si el dato no esta confirmado, usa `verified = false` y deja claro que esta pendiente.
+## RLS y progreso
 
-## Seguridad Supabase
+La app funciona como album personal publico sin login usando:
 
-El esquema activa RLS. La version inicial funciona como album personal con `profile_key = 'ammycita-single-user'`. Para multiples usuarios, agrega autenticacion, relaciona `user_stickers` con `auth.users` y cambia las politicas para usar `auth.uid()`.
+```text
+profile_key = 'ammycita'
+```
 
-## Despliegue en Vercel
+Las politicas RLS permiten al rol anon:
+
+- Leer `album_pages`.
+- Leer `stickers`.
+- Leer, insertar y actualizar `user_stickers` solo para `profile_key = 'ammycita'`.
+
+El marcado usa `upsert` con `unique(profile_key, sticker_id)`, por lo que el mismo cromo se marca y desmarca sin duplicados.
+
+## Desplegar en Vercel
 
 1. Sube el proyecto a GitHub.
-2. Entra a Vercel y elige **Add New Project**.
-3. Conecta el repositorio.
-4. Usa el framework preset **Vite**.
-5. Build command: `npm run build`.
-6. Output directory: `dist`.
-7. En **Environment Variables**, agrega:
+2. En Vercel, crea un nuevo proyecto desde ese repositorio.
+3. Framework preset: **Vite**.
+4. Build command: `npm run build`.
+5. Output directory: `dist`.
+6. Agrega estas variables en Vercel:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-8. Despliega.
+7. Despliega.
 
-## Scripts
+## Actualizar la checklist
 
-```bash
-npm run dev
-npm run build
-npm run preview
-npm run lint
+Si Panini publica cambios:
+
+1. Descarga la nueva checklist oficial.
+2. Compara cantidad total, codigos y nombres contra `supabase/seed.sql`.
+3. Regenera los inserts manteniendo `code` unico.
+4. Ejecuta de nuevo el seed. Usa `on conflict (code) do update` para conservar IDs cuando sea posible.
+5. Revisa que el conteo siga siendo correcto:
+
+```sql
+select count(*) from public.stickers;
+select section, count(*) from public.stickers group by section order by section;
 ```
 
-## Nota importante
-
-Este repositorio esta preparado para crecer conforme se publique o confirme la checklist real del album Panini FIFA World Cup 2026. Mantener la base incompleta pero verificada es mejor que completar 980 cromos con datos inventados.
+No agregues cromos inventados. Si un dato no esta confirmado, dejalo fuera del seed oficial o marcalo como `verified = false` en un seed separado de revision.

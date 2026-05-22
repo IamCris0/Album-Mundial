@@ -32,6 +32,18 @@ function getUniqueOptions(stickers, key) {
   );
 }
 
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function matchesOption(value, filterValue) {
+  return filterValue === 'all' || normalizeText(value) === normalizeText(filterValue);
+}
+
 export default function App() {
   const [hasEntered, setHasEntered] = useState(() => localStorage.getItem('ammycita-entered') === 'true');
   const [stickers, setStickers] = useState([]);
@@ -51,7 +63,7 @@ export default function App() {
         setPages(pageRows);
         setStickers(stickerRows);
       } catch (loadError) {
-        setError('No pudimos cargar Supabase. Revisa las variables de entorno o intenta de nuevo.');
+        setError(`Supabase no pudo cargar los datos: ${loadError.message || 'error desconocido'}.`);
         console.error(loadError);
       } finally {
         setLoading(false);
@@ -72,20 +84,22 @@ export default function App() {
   );
 
   const filteredStickers = useMemo(() => {
-    const normalizedQuery = filters.query.trim().toLowerCase();
+    const normalizedQuery = normalizeText(filters.query);
 
     return stickers.filter((sticker) => {
       const searchText = [sticker.code, sticker.number, sticker.name, sticker.country, sticker.section]
         .filter(Boolean)
         .join(' ')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase();
       const pageFilter = selectedPage !== 'all' ? selectedPage : filters.page;
 
       return (
         (!normalizedQuery || searchText.includes(normalizedQuery)) &&
-        (filters.country === 'all' || sticker.country === filters.country) &&
-        (filters.section === 'all' || sticker.section === filters.section) &&
-        (filters.type === 'all' || sticker.type === filters.type) &&
+        matchesOption(sticker.country, filters.country) &&
+        matchesOption(sticker.section, filters.section) &&
+        matchesOption(sticker.type, filters.type) &&
         (pageFilter === 'all' || String(sticker.album_page) === String(pageFilter)) &&
         (filters.status === 'all' ||
           (filters.status === 'owned' && sticker.owned) ||
@@ -99,6 +113,7 @@ export default function App() {
 
   const progress = useMemo(() => getGeneralProgress(stickers), [stickers]);
   const progressBySection = useMemo(() => getProgressBySection(stickers), [stickers]);
+  const officialCountLoaded = progress.total === albumMetadata.expectedStickerCount;
 
   function enterAlbum() {
     localStorage.setItem('ammycita-entered', 'true');
@@ -176,9 +191,23 @@ export default function App() {
           <div className="list-heading">
             <div>
               <p className="eyebrow">Cromos</p>
-              <h2>{filteredStickers.length} registrados</h2>
+              <h2>
+                {officialCountLoaded
+                  ? `${albumMetadata.expectedStickerCount} cromos oficiales cargados`
+                  : `${progress.total} cromos cargados`}
+              </h2>
+              <p className="result-count">
+                Mostrando {filteredStickers.length} de {progress.total} cromos
+              </p>
             </div>
-            <button className="icon-text-button" type="button" onClick={() => setFilters(initialFilters)}>
+            <button
+              className="icon-text-button"
+              type="button"
+              onClick={() => {
+                setFilters(initialFilters);
+                setSelectedPage('all');
+              }}
+            >
               <RotateCcw size={17} />
               Limpiar filtros
             </button>
@@ -198,9 +227,7 @@ export default function App() {
               ))}
             </div>
           ) : (
-            <div className="empty-state">
-              No hay cromos con estos filtros. Cuando cargues la checklist verificada en Supabase apareceran aqui.
-            </div>
+            <div className="empty-state">No hay cromos con estos filtros</div>
           )}
         </section>
       </section>
