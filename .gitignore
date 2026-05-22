@@ -3,6 +3,12 @@ dist
 .env
 .env.local
 .vercel
+.pythonlibs
+panini-checklist-2026.pdf
+scanini-album.html
+scanini-pages
+swapio-checklist.html
+tmp_stickers.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

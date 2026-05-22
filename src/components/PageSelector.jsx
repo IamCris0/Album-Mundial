@@ -1,33 +1,36 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen, LayoutGrid } from 'lucide-react';
 
 export default function PageSelector({ pages, selectedPage, onSelect }) {
   return (
-    <section className="page-selector" aria-label="Paginas del album">
+    <section className="page-selector" aria-label="Páginas del álbum">
       <div className="panel-heading horizontal">
         <div>
-          <p className="eyebrow">Paginas</p>
-          <h2>Secciones del album</h2>
+          <p className="eyebrow">Páginas</p>
+          <h2>Navega el álbum</h2>
         </div>
         <button
-          className={selectedPage === 'all' ? 'page-chip active' : 'page-chip'}
+          className={selectedPage === 'all' ? 'page-card all-pages active' : 'page-card all-pages'}
           type="button"
           onClick={() => onSelect('all')}
+          title="Mostrar todos los cromos"
         >
-          Todas
+          <LayoutGrid size={16} />
+          <span>Todas</span>
         </button>
       </div>
 
-      <div className="page-chip-list">
+      <div className="page-card-list">
         {pages.map((page) => (
           <button
-            className={String(selectedPage) === String(page.page_number) ? 'page-chip active' : 'page-chip'}
+            className={String(selectedPage) === String(page.page_number) ? 'page-card active' : 'page-card'}
             type="button"
             key={page.id}
             onClick={() => onSelect(page.page_number)}
-            title={page.description}
+            title={`Pág. ${page.page_number} · ${page.title || page.section || 'Sin título'}`}
           >
-            <BookOpen size={15} />
-            <span>{page.page_number}</span>
+            <BookOpen size={16} />
+            <span className="page-number">Pág. {page.page_number}</span>
+            <span className="page-title">{page.title || page.section || 'Sin título'}</span>
           </button>
         ))}
       </div>

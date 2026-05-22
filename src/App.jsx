@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Heart, RotateCcw } from 'lucide-react';
+import { BookHeart, Filter, Heart, RotateCcw, X } from 'lucide-react';
 import { albumMetadata } from './data/albumMetadata';
 import {
   getAlbumPages,
@@ -53,6 +53,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState('');
   const [error, setError] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -82,6 +83,36 @@ export default function App() {
     }),
     [pages, stickers],
   );
+
+  const selectedPageInfo = useMemo(
+    () => pages.find((page) => String(page.page_number) === String(selectedPage)),
+    [pages, selectedPage],
+  );
+
+  const activeFilters = useMemo(() => {
+    const items = [];
+
+    if (filters.query.trim()) items.push({ key: 'query', label: `Búsqueda: ${filters.query}` });
+    if (filters.country !== 'all') items.push({ key: 'country', label: `País: ${filters.country}` });
+    if (filters.page !== 'all') {
+      const page = pages.find((item) => String(item.page_number) === String(filters.page));
+      items.push({ key: 'page', label: `Pág. ${filters.page}${page?.title ? ` · ${page.title}` : ''}` });
+    }
+    if (filters.section !== 'all') items.push({ key: 'section', label: `Sección: ${filters.section}` });
+    if (filters.type !== 'all') items.push({ key: 'type', label: `Tipo: ${filters.type}` });
+    if (filters.status !== 'all') items.push({ key: 'status', label: filters.status === 'owned' ? 'Conseguidos' : 'Faltantes' });
+    if (filters.verification !== 'all') {
+      items.push({ key: 'verification', label: filters.verification === 'verified' ? 'Verificados' : 'Pendientes' });
+    }
+    if (selectedPage !== 'all') {
+      items.push({
+        key: 'selectedPage',
+        label: `Página actual: ${selectedPageInfo?.title || `Pág. ${selectedPage}`}`,
+      });
+    }
+
+    return items;
+  }, [filters, pages, selectedPage, selectedPageInfo]);
 
   const filteredStickers = useMemo(() => {
     const normalizedQuery = normalizeText(filters.query);
@@ -152,13 +183,23 @@ export default function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Regalo especial para Ammy</p>
-          <h1>Album Mundial Ammycita <span aria-hidden="true">❤️</span></h1>
-          <p className="subtitle">Controla los cromos reales del Mundial 2026, sin perder la ternura ni el orden.</p>
+          <h1>
+            Album Mundial Ammycita <span aria-hidden="true">❤️</span>
+          </h1>
+          <p className="subtitle">
+            Un tablero coleccionable para cuidar cada cromo del Mundial 2026, con orden, brillo y cariño.
+          </p>
         </div>
-        <button className="ghost-button" type="button" onClick={showWelcomeAgain}>
-          <Heart size={18} />
-          Ver bienvenida
-        </button>
+        <div className="topbar-actions">
+          <button className="ghost-button mobile-filter-button" type="button" onClick={() => setFiltersOpen(true)}>
+            <Filter size={18} />
+            Filtros
+          </button>
+          <button className="ghost-button" type="button" onClick={showWelcomeAgain}>
+            <BookHeart size={18} />
+            Ver portada
+          </button>
+        </div>
       </header>
 
       {!isSupabaseConfigured && (
@@ -173,10 +214,17 @@ export default function App() {
       <Dashboard progress={progress} metadata={albumMetadata} loading={loading} />
 
       <section className="workspace-grid">
-        <aside className="side-panel">
-          <StickerFilters filters={filters} onChange={setFilters} options={filterOptions} />
+        <aside className={filtersOpen ? 'side-panel open' : 'side-panel'}>
+          <div className="mobile-drawer-head">
+            <strong>Filtros</strong>
+            <button type="button" onClick={() => setFiltersOpen(false)} aria-label="Cerrar filtros">
+              <X size={18} />
+            </button>
+          </div>
+          <StickerFilters filters={filters} onChange={setFilters} options={filterOptions} activeCount={activeFilters.length} />
           <ProgressBySection items={progressBySection} />
         </aside>
+        {filtersOpen && <button className="drawer-backdrop" type="button" aria-label="Cerrar filtros" onClick={() => setFiltersOpen(false)} />}
 
         <section className="content-panel">
           <PageSelector
@@ -198,6 +246,7 @@ export default function App() {
               </h2>
               <p className="result-count">
                 Mostrando {filteredStickers.length} de {progress.total} cromos
+                {selectedPageInfo ? ` · Página actual: ${selectedPageInfo.title}` : ''}
               </p>
             </div>
             <button
@@ -213,8 +262,35 @@ export default function App() {
             </button>
           </div>
 
+          {activeFilters.length > 0 && (
+            <div className="active-filter-list" aria-label="Filtros activos">
+              {activeFilters.map((filter) => (
+                <button
+                  className="active-filter-chip"
+                  key={`${filter.key}-${filter.label}`}
+                  type="button"
+                  onClick={() => {
+                    if (filter.key === 'selectedPage') {
+                      setSelectedPage('all');
+                    } else {
+                      setFilters((current) => ({ ...current, [filter.key]: initialFilters[filter.key] }));
+                    }
+                  }}
+                  title="Quitar filtro"
+                >
+                  {filter.label}
+                  <X size={13} />
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading ? (
-            <div className="empty-state">Cargando el album de Ammycita...</div>
+            <div className="loading-state">
+              <Heart size={24} />
+              <strong>Cargando el álbum de Ammycita...</strong>
+              <span>Estamos ordenando los cromos.</span>
+            </div>
           ) : filteredStickers.length ? (
             <div className="sticker-grid">
               {filteredStickers.map((sticker) => (
@@ -227,7 +303,11 @@ export default function App() {
               ))}
             </div>
           ) : (
-            <div className="empty-state">No hay cromos con estos filtros</div>
+            <div className="empty-state">
+              <Heart size={24} />
+              <strong>No hay cromos con estos filtros</strong>
+              <span>Prueba cambiando la página, la selección o el estado.</span>
+            </div>
           )}
         </section>
       </section>
